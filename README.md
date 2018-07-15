@@ -158,7 +158,22 @@ theta6 = previous_theta6 + get_shortest_angular_distance_within_limits(
 
 #### 1. Fill in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. Your code must guide the robot to successfully complete 8/10 pick and place cycles. Briefly discuss the code you implemented and your results. 
 
+##### Inverse Orientation
+* Extract end-effector position and orientation from request
+* Roll, pitch, and yaw values for the gripper are returned in quaternions. Euler_from_quaternions() method outputs the roll, pitch, and yaw values. After obtaining roll, pitch, and yaw, extract nx, ny, and nz values from Rrpy matrix to obtain wrist center position.
+* Compensate for rotation discrepancy between DH parameters and Gazebo (multiply Rrpy by Rcorr, which equals Rz(pi) * Ry (-pi/2)
+* <sup>0</sup>R<sub>6</sub> = Rrpy
+* R3_6 = R0_3.T * Rrpy
+```python
+# define R3_6
+R0_3_lambda = lambdify([q1, q2, q3], R0_3)
+R3_6 = R0_3_lambda(theta1, theta2, theta3).T * R0_EE
+```
+* Calculate joint angles using Geometric IK method (arccos equations for Θ<sub>1</sub>,Θ<sub>2</sub>, and Θ<sub>3</sub> and arctan2 equations for Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> provided above)
+
 ##### Multiple Solutions Selection
+<p align="center"> <img src="https://upload.wikimedia.org/wikipedia/commons/a/a8/Arctangent2.svg"></p>
+
 To address potential for multiple solutions when solving for Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub>, solve for Θ<sub>5</sub> and -Θ<sub>5</sub> and choose Θ5 solution of shortest angular distance from previous or initial Θ<sub>5</sub>. Use sign of Θ<sub>5</sub> to determine Θ<sub>4</sub>  and Θ<sub>6</sub>  to ensure consistent solution selection  (i.e atan2(y, -x) vs atan2(-y, x))  of Θ<sub>4</sub>, Θ<sub>5</sub> for a given Θ<sub>5</sub>
 * View python code snippet pertaining to Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> derivations for more details
 
@@ -203,10 +218,23 @@ try:
 except rospy.ServiceException as e:
     rospy.logerr('Get joint properties request failed.')
 ```
-Here I'll talk about the code, what techniques I used, what worked and why, where the implementation might fail and how I might improve it if I were going to pursue this project further.  
+
+### Results
+
+##### Picked and Placed 10/10 ✓ 
+<p align="center"> <img src="./misc_images/object_placement_results_10-10.png"> </p>
+
+* The speed and fluidity of the kuka arm improved markedly after constraining Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> to corresponding angles of shortest angular distance
+* Kuka arm stopped dropping objects after joint limits for Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub>  were accounted for
+* Sometimes (approx. %8 of the time) the robotic arm does not pick and place 10 / 10. This seems to be due to glitches with gazebo simulator and physics engine.
+* There is nonzero EE offset for all joint trajectory points calculated. This is owing to compounded precision loss from truncation / rounding of joint variable values within IK calculations
+* avg time to pick and place: 1 min 16 secs ((glxgears) 2951.575 FPS)
+* avg EE offset: ~2.2 units
 
 
-And just for fun, another example image:
-![alt text][image3]
+### Next Steps
 
+* Improve Speed: Writing and compiling code in C++ 
+* Minimize EE offset error: Reduce compounded precision loss stemming from rounding and truncation of joint variable values within IK calculations.
+* Implement numerical solution (and compare to geometric solution)
 
