@@ -117,15 +117,92 @@ T0_EE = T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_EE
 
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
 
-And here's where you can draw out and show your math for the derivation of your theta angles. 
+Deriving individual joint angles (Θ<sub>1</sub>, Θ<sub>2</sub>, Θ<sub>3</sub>):
+<p align="center"> <img src="./misc_images/calculating_theta123.png"> </p>
 
-![alt text][image2]
+```python
+# define theta1, theta2, theta3
+theta1 = atan2(WC[1], WC[0])
+theta2 = pi / 2 - angle_a - atan2(WC[2] - dh[d1], hypot(WC[0], WC[1]) - dh[a1])
+theta3 = pi / 2 - angle_b - atan2(-dh[a3], dh[d4])
+```
+
+Deriving individual joint angles (Θ<sub>4</sub>, Θ<sub>5</sub>, Θ<sub>6</sub>):
+<p align="center"> <img src="./misc_images/calculating_theta456.png"> </p>
+
+```python
+# define theta5
+theta5 = atan2(hypot(R3_6[0,2], R3_6[2,2]), R3_6[1,2])
+theta5_ps_angular_distance = get_shortest_angular_distance_within_limits(
+    previous_theta5, theta5, lower_joint_limit, upper_joint_limit)
+theta5_ns_angular_distance = get_shortest_angular_distance_within_limits(
+    previous_theta5, -theta5, lower_joint_limit, upper_joint_limit)
+if abs(theta5_ps_angular_distance) < abs(theta5_ns_angular_distance):
+    theta5 = previous_theta5 + theta5_ps_angular_distance
+else:
+    theta5 = previous_theta5 + theta5_ns_angular_distance
+# define theta4, theta6 (w/ conditional to ensure consistent solution selection)
+if sin(theta5) >= 0:
+    theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+    theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+else:
+    theta4 = atan2(-R3_6[2,2], R3_6[0,2])
+    theta6 = atan2(R3_6[1,1], -R3_6[1,0])
+theta4 = previous_theta4 + get_shortest_angular_distance_within_limits(
+    previous_theta4, theta4, lower_joint_limit, upper_joint_limit)
+theta6 = previous_theta6 + get_shortest_angular_distance_within_limits(
+    previous_theta6, theta6, lower_joint_limit, upper_joint_limit)
+```
 
 ### Project Implementation
 
 #### 1. Fill in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. Your code must guide the robot to successfully complete 8/10 pick and place cycles. Briefly discuss the code you implemented and your results. 
 
+##### Multiple Solutions Selection
+To address potential for multiple solutions when solving for Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub>, solve for Θ<sub>5</sub> and -Θ<sub>5</sub> and choose Θ5 solution of shortest angular distance from previous or initial Θ<sub>5</sub>. Use sign of Θ<sub>5</sub> to determine Θ<sub>4</sub>  and Θ<sub>6</sub>  to ensure consistent solution selection  (i.e atan2(y, -x) vs atan2(-y, x))  of Θ<sub>4</sub>, Θ<sub>5</sub> for a given Θ<sub>5</sub>
+* View python code snippet pertaining to Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> derivations for more details
 
+##### Prevent Excessive Rotation
+To prevent excessive rotation Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> should be defined in terms of angle corresponding to shortest angular distance from previous Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub>  within joint trajectory list. Only define Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> to angles within joint limits specified in URDF (L:-350,U:350)
+
+To get initial Θ<sub>4</sub>,Θ<sub>5</sub>, and Θ<sub>6</sub> make service request to /gazebo/get_joint_properties
+
+Python code to get shortest angular distance from a given previous / initial joint angle to current joint angle
+```python
+from angles import shortest_angular_distance_with_limits
+def get_shortest_angular_distance_within_limits(from_theta, to_theta, left_limit, right_limit):
+    """
+    Get angle that corresponds to the shortest angular distance within left and right limits 
+    from 'from_theta' angle to 'to_theta' angle
+    Inputs:
+        from_theta (float) # radians
+        to_theta (float)  # radians
+        left_limit (float) # radians
+        right_limit (float) # radians
+    Returns:
+        shortest_angular_distance (float) # radians
+    """
+    shortest_angular_distance = shortest_angular_distance_with_limits(
+        from_theta, 
+        to_theta, 
+        left_limit + from_theta, 
+        right_limit + from_theta)[1]
+    new_theta = from_theta + shortest_angular_distance
+    if left_limit <= new_theta <= right_limit:
+        return shortest_angular_distance
+    return -np.sign(new_theta) * (radians(360) - abs(shortest_angular_distance))
+```
+
+```python
+# request initial theta4, theta5, and theta6 from gazebo
+try:
+    get_joint_properties = rospy.ServiceProxy('/gazebo/get_joint_properties', GetJointProperties)
+    previous_theta4 = get_joint_properties('joint_4').position[0]
+    previous_theta5 = get_joint_properties('joint_5').position[0]
+    previous_theta6 = get_joint_properties('joint_6').position[0]
+except rospy.ServiceException as e:
+    rospy.logerr('Get joint properties request failed.')
+```
 Here I'll talk about the code, what techniques I used, what worked and why, where the implementation might fail and how I might improve it if I were going to pursue this project further.  
 
 
