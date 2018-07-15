@@ -65,16 +65,55 @@ Links | α<sub>i-1</sub> | a<sub>i-1</sub> | d<sub>i-1</sub> | Θ<sub>i</sub>
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
 
-Links | alpha(i-1) | a(i-1) | d(i-1) | theta(i)
---- | --- | --- | --- | ---
-0->1 | 0 | 0 | L1 | qi
-1->2 | - pi/2 | L2 | 0 | -pi/2 + q2
-2->3 | 0 | 0 | 0 | 0
-3->4 |  0 | 0 | 0 | 0
-4->5 | 0 | 0 | 0 | 0
-5->6 | 0 | 0 | 0 | 0
-6->EE | 0 | 0 | 0 | 0
+* To get total transform from frame 0 to frame EE, compose individual transformation matrices together (i.e <sup>0</sup>T<sub>1</sub>, <sup>1</sup>T<sub>2</sub>…..<sup>6</sup>T<sub>EE</sub>)
+* <sup>0</sup>R<sub>6</sub> = Rrpy
+* <sup>0</sup>T<sub>EE</sub>  can also be expressed in terms of Rrpy and the end effector pose (a 4 x 4 real value transformation matrix). This method involves solving 12 nonlinear equations for each term in the first three rows of the real value transformation matrix.
 
+Import required python modules
+```python
+import numpy as np
+from sympy import *
+```
+
+Python code to generate homogeneous transform from joint frame {i-1} to {frame i}
+```python
+def TF_matrix(alpha, a, d, sq, cq):
+    """
+    Generate homogeneous transform from frame {i-1} to {frame i}
+    using DH parameters descriptive of frame{i-1} and frame {i}
+    Inputs:
+        alpha (symbol) # twist angle
+        a (symbol) # link length
+        d (symbol) # link offset
+        sq (symbol) # sin(theta)
+        cq (symbol) # cos(theta)
+    Returns:
+        TF (Matrix)
+    Returns:
+    """
+    TF = Matrix([
+        [           cq,           -sq,           0,             a],
+        [sq*cos(alpha), cq*cos(alpha), -sin(alpha), -sin(alpha)*d],
+        [sq*sin(alpha), cq*sin(alpha),  cos(alpha),  cos(alpha)*d],
+        [             0,            0,           0,             1]])
+    return TF
+```
+
+```python
+# create individual transformation matrices
+alpha, a, d, sq, cq = symbols('alpha a d sq cq')
+Ti_j = lambdify([alpha, a, d, sq, cq], TF_matrix(alpha, a, d, sq, cq))
+T0_1 = Matrix(Ti_j(dh[alpha0], dh[a0], dh[d1], sin(q1), cos(q1)))
+T1_2 = Matrix(Ti_j(dh[alpha1], dh[a1], dh[d2], sin(dh[q2]), cos(dh[q2])))
+T2_3 = Matrix(Ti_j(dh[alpha2], dh[a2], dh[d3], sin(q3), cos(q3)))
+T3_4 = Matrix(Ti_j(dh[alpha3], dh[a3], dh[d4], sin(q4), cos(q4)))
+T4_5 = Matrix(Ti_j(dh[alpha4], dh[a4], dh[d5], sin(q5), cos(q5)))
+T5_6 = Matrix(Ti_j(dh[alpha5], dh[a5], dh[d6], sin(q6), cos(q6)))
+T6_EE = Matrix(Ti_j(dh[alpha6], dh[a6], dh[d7], sin(dh[q7]), cos(dh[q7])))
+T0_EE = T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_EE
+```
+
+##### &ast; Sympy's Lambdify() used in place of conventional evalf() or sub() to optimize speed
 
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
 
