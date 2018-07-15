@@ -7,8 +7,6 @@
 #### Instructions on how to setup Gazebo, ROS and other dependencies can be found [here](./setup_guide.md).
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
-
 ---
 ### Writeup / README
 
