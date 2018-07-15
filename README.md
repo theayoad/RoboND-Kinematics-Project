@@ -11,9 +11,52 @@
 ### Kinematic Analysis
 #### 1. Extract joint positions and orientations from kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and derive its DH parameters.
 
-Here is an example of how to include an image in your writeup.
+To extract joint positions and orientations from kr210.urdf.xacro, find the origin element of each joint tag in the urdf file. The origin element declares the axis of rotation/translation and the relationship between the two links that form the joint. For demonstration purposes, joint tags (as provided in urdf file) for the first two joints of the robotic arm are added below.
 
-![alt text][image1]
+```xml
+ <!-- joints -->
+  <joint name="fixed_base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="joint_1" type="revolute">
+    <origin xyz="0 0 0.33" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="link_1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="${-185*deg}" upper="${185*deg}" effort="300" velocity="${123*deg}"/>
+  </joint>
+  ...
+<!-- joints -->
+```
+Extracting all positions and orientations for each joint(from fixed based joint to gripper) results in table below:
+
+i | joint | parent | child | x | y | z | r | p | y |
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+0 | fixed_base_joint | base_footprint | base_link | 0 | 0 | 0 | 0 | 0 | 0 |
+1 | joint_1 | base_link | link_1 | 0 | 0 | 0.33 | 0 | 0 | 0 |
+2 | joint_2 | link_1 | link_2 | 0 .35| 0 | 0.42 | 0 | 0 | 0 |
+3 | joint_3 | link_2 | link_3 | 0 | 0 | 1.25 | 0 | 0 | 0 |
+4 | joint_4 | link_3 | link_4 | 0.96 | 0 | -0.054 | 0 | 0 | 0 |
+5 | joint_5 | link_4 | link_5 | 0.54 | 0 | 0 | 0 | 0 | 0 |
+6 | joint_6 | link_5 | link_6 | 0.193 | 0 | 0 | 0 | 0 | 0 |
+7 | gripper_joint | link_6 | gripper_link | 0.11 | 0 | 0 | 0 | 0 | 0 |
+
+The below DH parameter table is derived from above table of joint positions and orientations. Drawings provided to faciliate easier visualization of how each joint frame relates to the next and how each DH parameter:
+
+Links | α<sub>i-1</sub> | a<sub>i-1</sub> | d<sub>i-1</sub> | Θ<sub>i</sub>
+--- | --- | --- | --- | ---
+0->1 | 0 | 0 | 0.75 | Θ<sub>1</sub>
+1->2 | - pi/2 | 0.35 | 0 | Θ<sub>2</sub> - pi/2
+2->3 | 0 | 1.25 | 0 | Θ<sub>3</sub>
+3->4 |  -pi/2 | -0.054 | 1.50 | Θ<sub>4</sub>
+4->5 | pi/2 | 0 | 0 | Θ<sub>5</sub>
+5->6 | -pi/2 | 0 | 0 | Θ<sub>6</sub>
+6->EE | 0 | 0 | 0.303 | 0
+
+<p align="center"> <img src="./images/kr210_fk1.jpg"> </p>
+<p align="center"> <img src="./images/kr210_fk1.jpg"> </p>
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
 
