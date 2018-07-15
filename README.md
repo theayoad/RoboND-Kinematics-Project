@@ -43,7 +43,7 @@ i | joint | parent | child | x | y | z | r | p | y |
 6 | joint_6 | link_5 | link_6 | 0.193 | 0 | 0 | 0 | 0 | 0 |
 7 | gripper_joint | link_6 | gripper_link | 0.11 | 0 | 0 | 0 | 0 | 0 |
 
-The below DH parameter table is derived from above table of joint positions and orientations. Drawings provided to faciliate easier visualization of how each joint frame relates to the next and how each DH parameter:
+The DH parameter table below is derived from above table of joint positions and orientations. Drawing of kuka arm in its zero configuration is provided to faciliate visualization of how each joint frame relates to the next:
 
 Links | α<sub>i-1</sub> | a<sub>i-1</sub> | d<sub>i-1</sub> | Θ<sub>i</sub>
 --- | --- | --- | --- | ---
@@ -55,8 +55,13 @@ Links | α<sub>i-1</sub> | a<sub>i-1</sub> | d<sub>i-1</sub> | Θ<sub>i</sub>
 5->6 | -pi/2 | 0 | 0 | Θ<sub>6</sub>
 6->EE | 0 | 0 | 0.303 | 0
 
-<p align="center"> <img src="./images/kr210_fk1.jpg"> </p>
-<p align="center"> <img src="./images/kr210_fk1.jpg"> </p>
+* DH parameter convention from Craig, JJ. (2005). Introduction to Robotics: Mechanics and Control, 3rd Ed (Pearson Education, Inc., NJ)
+* α<sub>i-1</sub>  (twist angle) : angle from Z<sub>i-1</sub> to Z<sub>i</sub> measured along X<sub>i-1</sub>
+* a<sub>i-1</sub> (link length): distance from Z<sub>i-1</sub> to Z<sub>i</sub> measured along X<sub>i-1</sub>
+* d<sub>i</sub>  (link offset) : distance from X<sub>i-1</sub> to X<sub>i</sub> measured along Z<sub>i</sub>
+* Θ<sub>i</sub>  (joint angle) : angle from X<sub>i-1</sub> to X<sub>i</sub> measured along Z<sub>i</sub>
+
+<p align="center"> <img src="./misc_images/kuka_arm_zero_configuration.png"> </p>
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
 
